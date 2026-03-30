@@ -1,221 +1,113 @@
 <!DOCTYPE html>
-<html lang="fr" class="scroll-smooth">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goat - Restaurant Premium</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <title>Goat Admin - Ajouter un plat</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        title: ['"Playfair Display"', 'serif'],
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif']
-                    },
-                    colors: {
-                        gold: { DEFAULT: '#D4AF37', dark: '#aa8b2c', light: '#f2d492' },
-                        dark: '#0f0a08'
-                    }
-                }
-            }
-        }
-    </script>
-
+    
     <style>
-        body {
-            background-color: #0f0a08;
-            background-image: linear-gradient(rgba(15,10,8,0.85), rgba(15,10,8,0.95)), url('fond.jpg'); 
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            color: #fff;
-            overflow-x: hidden;
-        }
-        .btn-harmony { font-family: 'Playfair Display', serif; font-weight: 700; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
-        .glass-premium { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px) saturate(180%); border: 1px solid rgba(212, 175, 55, 0.2); }
-        .section-hidden { display: none !important; }
-        .section-visible { display: block !important; animation: reveal 0.8s ease-out forwards; }
-        @keyframes reveal { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-        #back-button { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 200; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
-        .hero-title { font-family: 'Playfair Display', serif; line-height: 1.1; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .admin-card { background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #3ecf8e; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-size: 0.9rem; color: #aaa; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; margin-top: 25px; border-radius: 8px; border: none; background: #3ecf8e; color: #121212; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #34b27b; transform: translateY(-2px); }
+        .loading { display: none; text-align: center; margin-top: 10px; color: #3ecf8e; }
     </style>
 </head>
-<body class="font-sans">
+<body>
 
-    <nav class="fixed w-full z-[100] glass-premium">
-        <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
-            <a href="#" onclick="goHome()" class="text-3xl hero-title font-black text-gold italic">Goat.</a>
-            <div class="flex items-center gap-4">
-                <button onclick="showSection('commande')" class="relative p-3 glass-premium rounded-full">
-                    <span id="cart-count" class="absolute -top-1 -right-1 bg-gold text-dark text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center hidden">0</span>
-                    <svg class="w-6 h-6 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                </button>
-            </div>
-        </div>
-    </nav>
+<div class="admin-card">
+    <h2>Ajouter au Menu 🍔</h2>
+    
+    <label>Nom du produit</label>
+    <input type="text" id="nom" placeholder="ex: Tacos Lyon">
 
-    <button id="back-button" onclick="goHome()" class="section-hidden btn-harmony px-10 py-4 bg-white text-black rounded-full hover:bg-gold transition-all text-sm tracking-wide">
-        ← REVENIR
-    </button>
+    <label>Prix (DA)</label>
+    <input type="number" id="prix" placeholder="ex: 750">
 
-    <section id="hero-section" class="min-h-screen flex items-center justify-center text-center px-6">
-        <div data-aos="fade-up">
-            <span class="text-gold tracking-[0.5em] font-semibold uppercase text-xs mb-6 block">Gastronomie Italienne • Boghni</span>
-            <h1 class="text-6xl md:text-8xl hero-title font-black mb-16">L'Art de <br><span class="text-gold italic">la Saveur.</span></h1>
-            <div class="flex flex-col md:flex-row gap-6 justify-center items-center mt-24">
-                <button onclick="showSection('menu')" class="btn-harmony w-64 px-8 py-5 bg-gold text-dark rounded-full hover:scale-110 shadow-2xl shadow-gold/20 text-lg">Consulter le Menu</button>
-                <button onclick="showSection('location')" class="btn-harmony w-64 px-8 py-5 glass-premium border border-gold/40 rounded-full hover:bg-gold/10 text-white text-lg">📍 Localisation</button>
-                <button onclick="showSection('commande')" class="btn-harmony w-64 px-8 py-5 glass-premium border border-white/20 rounded-full hover:bg-white/10 text-white text-lg">Commander</button>
-            </div>
-        </div>
-    </section>
+    <label>Catégorie</label>
+    <select id="categorie">
+        <option value="burgers">Burgers</option>
+        <option value="tacos">Tacos</option>
+        <option value="pizzas">Pizzas</option>
+        <option value="boissons">Boissons</option>
+    </select>
 
-    <section id="menu-section" class="section-hidden py-32 px-6">
-        <div class="max-w-7xl mx-auto">
-            <div class="flex flex-wrap justify-center gap-4 mb-20">
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu('burgers')">Burgers</button>
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu('pizzas')">Pizzas</button>
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu('tacos')">Tacos & Snacks</button>
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu('boissons')">Boissons</button>
-            </div>
-            <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"></div>
-        </div>
-    </section>
+    <label>Photo du plat</label>
+    <input type="file" id="imageFile" accept="image/*">
 
-    <section id="location-section" class="section-hidden py-32 px-6">
-        <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-5xl hero-title text-gold mb-16 italic">📍 Où nous trouver</h2>
-            <div class="glass-premium p-4 rounded-[3rem] h-[500px]">
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3209.610586221774!2d3.953503!3d36.540192!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x128d97793d5a287f%3A0xb304776f34e62473!2sBoghni!5e0!3m2!1sfr!2sdz!4v1711830000000!5m2!1sfr!2sdz" width="100%" height="100%" style="border:0; border-radius: 2rem;" allowfullscreen="" loading="lazy"></iframe>
-            </div>
-        </div>
-    </section>
+    <button id="btnAjouter" onclick="ajouterProduit()">METTRE EN LIGNE</button>
+    <div id="loader" class="loading">Envoi en cours... patientez...</div>
+</div>
 
-    <section id="commande-section" class="section-hidden py-32 px-6">
-        <div class="max-w-xl mx-auto glass-premium p-10 rounded-[3rem]">
-            <h3 class="text-3xl hero-title text-gold mb-8 italic text-center">Finaliser votre commande</h3>
-            <div id="cart-summary" class="mb-8 space-y-3 font-semibold"></div>
-            <form onsubmit="sendWhatsApp(event)" class="space-y-6">
-                <input type="text" id="nom" placeholder="VOTRE NOM" required class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-gold">
-                <input type="text" id="adresse" placeholder="ADRESSE DE LIVRAISON" required class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-gold">
-                <button type="submit" class="btn-harmony w-full py-6 bg-gold text-dark rounded-2xl shadow-xl text-lg">CONFIRMER SUR WHATSAPP</button>
-            </form>
-        </div>
-    </section>
+<script>
+    // --- CONFIGURATION SUPABASE ---
+    const SUPABASE_URL = 'https://zsgssdhngvlfsrybjlbq.supabase.co';
+    // Clé anon publique remplacée ici :
+    const SUPABASE_KEY = 'sb_publishable_UJ_pf9DMTSqlrUVjUECIFA_6y0wdgtN'; 
+    
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    <footer class="py-10 text-center text-gray-600 text-xs tracking-widest uppercase">
-        © 2026 Goat Boghni • Excellence & Saveurs
-    </footer>
+    async function ajouterProduit() {
+        const nom = document.getElementById('nom').value;
+        const prix = document.getElementById('prix').value;
+        const categorie = document.getElementById('categorie').value;
+        const file = document.getElementById('imageFile').files[0];
+        const btn = document.getElementById('btnAjouter');
+        const loader = document.getElementById('loader');
 
-    <script>
-        // CONFIGURATION SUPABASE
-        const SUPABASE_URL = 'https://zvuqwnexrscczoariwcc.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_Gz5KyJA27t70tlBJ9TWpww_QFILrC4O_S1EUW7o1U'; 
-        
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let products = [];
-        let cart = [];
-
-        async function loadMenu() {
-            const { data, error } = await _supabase.from('produits').select('*');
-            if (error) {
-                console.error("Erreur de chargement:", error);
-                return;
-            }
-            products = data;
-            filterMenu('burgers'); // Affiche les burgers par défaut au chargement
+        if (!nom || !prix || !file) {
+            alert("Remplis tous les champs et choisis une photo !");
+            return;
         }
 
-        function showSection(id) {
-            document.getElementById('hero-section').classList.add('section-hidden');
-            document.getElementById('back-button').classList.remove('section-hidden');
-            document.getElementById('back-button').classList.add('section-visible');
+        // Afficher le chargement
+        btn.style.display = 'none';
+        loader.style.display = 'block';
+
+        try {
+            // 1. Envoyer l'image au Storage (Bucket: images-produits)
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`; 
             
-            ['menu-section', 'location-section', 'commande-section'].forEach(s => {
-                document.getElementById(s).classList.add('section-hidden');
-                document.getElementById(s).classList.remove('section-visible');
-            });
+            const { data: uploadData, error: uploadError } = await _supabase.storage
+                .from('images-produits')
+                .upload(fileName, file);
 
-            const target = document.getElementById(id + '-section');
-            target.classList.remove('section-hidden');
-            target.classList.add('section-visible');
+            if (uploadError) throw uploadError;
+
+            // 2. Récupérer l'URL de l'image
+            const { data: publicUrlData } = _supabase.storage
+                .from('images-produits')
+                .getPublicUrl(fileName);
             
-            if(id === 'menu' && products.length === 0) {
-                loadMenu();
-            }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+            const finalImageUrl = publicUrlData.publicUrl;
 
-        function goHome() {
-            ['menu-section', 'location-section', 'commande-section', 'back-button'].forEach(id => {
-                const el = document.getElementById(id);
-                el.classList.add('section-hidden');
-                el.classList.remove('section-visible');
-            });
-            document.getElementById('hero-section').classList.remove('section-hidden');
-            document.getElementById('hero-section').classList.add('section-visible');
-        }
+            // 3. Insérer dans la table "produits"
+            const { error: dbError } = await _supabase
+                .from('produits')
+                .insert([{ 
+                    nom: nom, 
+                    prix: parseInt(prix), 
+                    categorie: categorie, 
+                    image: finalImageUrl 
+                }]);
 
-        function filterMenu(cat) {
-            const grid = document.getElementById('products-grid');
-            const btns = document.querySelectorAll('.category-btn');
-            btns.forEach(b => {
-                const isMatch = b.innerText.toLowerCase().includes(cat.toLowerCase().substring(0,3));
-                b.style.background = isMatch ? '#D4AF37' : 'rgba(255, 255, 255, 0.03)';
-                b.style.color = isMatch ? '#0f0a08' : '#fff';
-            });
-            
-            const filtered = products.filter(p => p.categorie === cat);
-            grid.innerHTML = filtered.map(p => `
-                <div class="glass-premium p-5 rounded-[2.5rem] group hover:border-gold transition-all duration-500">
-                    <div class="overflow-hidden rounded-[2rem] mb-6">
-                        <img src="${p.image}" class="h-56 w-full object-cover group-hover:scale-110 transition-transform duration-700" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Indisponible'">
-                    </div>
-                    <h3 class="btn-harmony text-lg mb-2 text-white">${p.nom}</h3>
-                    <div class="flex justify-between items-center mt-4">
-                        <span class="text-3xl font-black text-gold">${p.prix} DA</span>
-                        <button onclick="addToCart(${p.id})" class="bg-gold text-dark p-4 rounded-2xl hover:bg-white transition-colors">＋</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+            if (dbError) throw dbError;
 
-        function addToCart(id) {
-            const item = products.find(x => x.id === id);
-            cart.push(item);
-            document.getElementById('cart-count').innerText = cart.length;
-            document.getElementById('cart-count').classList.remove('hidden');
-            confetti({ particleCount: 40, spread: 60, colors: ['#D4AF37', '#ffffff'] });
-            updateCartSummary();
-        }
+            alert("Succès ! Le plat " + nom + " est ajouté au menu.");
+            location.reload(); 
 
-        function updateCartSummary() {
-            const total = cart.reduce((acc, curr) => acc + curr.prix, 0);
-            document.getElementById('cart-summary').innerHTML = cart.map(item => `
-                <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/5">
-                    <span>${item.nom}</span>
-                    <span class="text-gold">${item.prix} DA</span>
-                </div>
-            `).join('') + `<div class="text-center pt-6 text-2xl font-black text-gold">TOTAL : ${total} DA</div>`;
+        } catch (err) {
+            alert("Erreur : " + err.message);
+            btn.style.display = 'block';
+            loader.style.display = 'none';
         }
+    }
+</script>
 
-        function sendWhatsApp(e) {
-            e.preventDefault();
-            const total = cart.reduce((acc, curr) => acc + curr.prix, 0);
-            const text = `⚜️ COMMANDE GOAT ⚜️\n\n` + cart.map(i => `• ${i.nom}`).join('\n') + `\n\n👤 Client : ${document.getElementById('nom').value}\n📍 Adresse : ${document.getElementById('adresse').value}\n💰 TOTAL : ${total} DA`;
-            window.open(`https://wa.me/213672162788?text=${encodeURIComponent(text)}`);
-        }
-
-        AOS.init();
-        loadMenu(); 
-    </script>
 </body>
 </html>
