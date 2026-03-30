@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goat Admin - Ajouter un plat</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .admin-card { background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #3ecf8e; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-size: 0.9rem; color: #aaa; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; margin-top: 25px; border-radius: 8px; border: none; background: #3ecf8e; color: #121212; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #34b27b; transform: translateY(-2px); }
+        .loading { display: none; text-align: center; margin-top: 10px; color: #3ecf8e; }
+    </style>
+</head>
+<body>
+
+<div class="admin-card">
+    <h2>Ajouter au Menu 🍔</h2>
+    
+    <label>Nom du produit</label>
+    <input type="text" id="nom" placeholder="ex: Tacos Lyon">
+
+    <label>Prix (DA)</label>
+    <input type="number" id="prix" placeholder="ex: 750">
+
+    <label>Catégorie</label>
+    <select id="categorie">
+        <option value="burgers">Burgers</option>
+        <option value="tacos">Tacos</option>
+        <option value="pizzas">Pizzas</option>
+        <option value="boissons">Boissons</option>
+    </select>
+
+    <label>Photo du plat</label>
+    <input type="file" id="imageFile" accept="image/*">
+
+    <button id="btnAjouter" onclick="ajouterProduit()">METTRE EN LIGNE</button>
+    <div id="loader" class="loading">Envoi en cours... patientez...</div>
+</div>
+
+<script>
+    // --- CONFIGURATION SUPABASE ---
+    const SUPABASE_URL = 'https://zsgssdhngvlfsrybjlbq.supabase.co';
+    // Clé anon publique remplacée ici :
+    const SUPABASE_KEY = 'sb_publishable_UJ_pf9DMTSqlrUVjUECIFA_6y0wdgtN'; 
+    
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function ajouterProduit() {
+        const nom = document.getElementById('nom').value;
+        const prix = document.getElementById('prix').value;
+        const categorie = document.getElementById('categorie').value;
+        const file = document.getElementById('imageFile').files[0];
+        const btn = document.getElementById('btnAjouter');
+        const loader = document.getElementById('loader');
+
+        if (!nom || !prix || !file) {
+            alert("Remplis tous les champs et choisis une photo !");
+            return;
+        }
+
+        // Afficher le chargement
+        btn.style.display = 'none';
+        loader.style.display = 'block';
+
+        try {
+            // 1. Envoyer l'image au Storage (Bucket: images-produits)
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`; 
+            
+            const { data: uploadData, error: uploadError } = await _supabase.storage
+                .from('images-produits')
+                .upload(fileName, file);
+
+            if (uploadError) throw uploadError;
+
+            // 2. Récupérer l'URL de l'image
+            const { data: publicUrlData } = _supabase.storage
+                .from('images-produits')
+                .getPublicUrl(fileName);
+            
+            const finalImageUrl = publicUrlData.publicUrl;
+
+            // 3. Insérer dans la table "produits"
+            const { error: dbError } = await _supabase
+                .from('produits')
+                .insert([{ 
+                    nom: nom, 
+                    prix: parseInt(prix), 
+                    categorie: categorie, 
+                    image: finalImageUrl 
+                }]);
+
+            if (dbError) throw dbError;
+
+            alert("Succès ! Le plat " + nom + " est ajouté au menu.");
+            location.reload(); 
+
+        } catch (err) {
+            alert("Erreur : " + err.message);
+            btn.style.display = 'block';
+            loader.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
