@@ -9,7 +9,6 @@
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -94,7 +93,7 @@
         <div class="max-w-4xl mx-auto text-center">
             <h2 class="text-5xl hero-title text-gold mb-16 italic">📍 Où nous trouver</h2>
             <div class="glass-premium p-4 rounded-[3rem] h-[500px]">
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3204.383120614482!2d3.9511!3d36.54!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzbCsDMyJzI0LjAiTiAzwrA1NycwNC4wIkU!5e0!3m2!1sfr!2sdz!4v1650000000000" width="100%" height="100%" style="border:0; border-radius: 2rem;" allowfullscreen="" loading="lazy"></iframe>
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3209.610586221774!2d3.953503!3d36.540192!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x128d97793d5a287f%3A0xb304776f34e62473!2sBoghni!5e0!3m2!1sfr!2sdz!4v1711830000000!5m2!1sfr!2sdz" width="100%" height="100%" style="border:0; border-radius: 2rem;" allowfullscreen="" loading="lazy"></iframe>
             </div>
         </div>
     </section>
@@ -116,10 +115,9 @@
     </footer>
 
     <script>
-        // CONFIGURATION SUPABASE CORRIGÉE
+        // CONFIGURATION SUPABASE
         const SUPABASE_URL = 'https://zvuqwnexrscczoariwcc.supabase.co';
-        // CLÉ COMPLÈTE RÉCUPÉRÉE DE TA CAPTURE
-        const SUPABASE_ANON_KEY = 'sb_publishable_Gz5KyJA27t70tlBJ9TWpww_QFILrC4O_S1EUW7o1U';
+        const SUPABASE_ANON_KEY = 'sb_publishable_Gz5KyJA27t70tlBJ9TWpww_QFILrC4O_S1EUW7o1U'; 
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -133,6 +131,7 @@
                 return;
             }
             products = data;
+            filterMenu('burgers'); // Affiche les burgers par défaut au chargement
         }
 
         function showSection(id) {
@@ -149,12 +148,8 @@
             target.classList.remove('section-hidden');
             target.classList.add('section-visible');
             
-            if(id === 'menu') {
-                if(products.length === 0) {
-                    loadMenu().then(() => filterMenu('burgers'));
-                } else {
-                    filterMenu('burgers');
-                }
+            if(id === 'menu' && products.length === 0) {
+                loadMenu();
             }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -182,7 +177,7 @@
             grid.innerHTML = filtered.map(p => `
                 <div class="glass-premium p-5 rounded-[2.5rem] group hover:border-gold transition-all duration-500">
                     <div class="overflow-hidden rounded-[2rem] mb-6">
-                        <img src="${p.image}" class="h-56 w-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <img src="${p.image}" class="h-56 w-full object-cover group-hover:scale-110 transition-transform duration-700" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Indisponible'">
                     </div>
                     <h3 class="btn-harmony text-lg mb-2 text-white">${p.nom}</h3>
                     <div class="flex justify-between items-center mt-4">
