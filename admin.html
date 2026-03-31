@@ -43,67 +43,57 @@
     <div id="listeContenu">Chargement...</div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    const SUPABASE_URL = 'https://zsgssdhngvlfsrybjlbq.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_Gz5KyJA27t70tlBJ9TWpww_QFIL--qR'; 
+    // --- 1. CONFIGURATION CONNEXION ---
+    // On utilise tes nouvelles clés qui marchent déjà sur l'index
+    const SUPABASE_URL = 'https://mshnfkduobuouqxtuhaa.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_WIDRhfioHCEGTUOoU5Rz2A_t6278M-i';
+    
+    // Initialisation du client Supabase
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    document.addEventListener('DOMContentLoaded', () => {
-        chargerCategories();
-        chargerProduits();
-    });
+    // --- 2. FONCTION POUR AJOUTER UN PRODUIT ---
+    async function ajouterProduit(event) {
+        event.preventDefault(); // Empêche la page de se recharger
 
-    async function chargerCategories() {
-        try {
-            const { data, error } = await _supabase.from('categorie').select('*').order('id');
-            const select = document.getElementById('categorieSelect');
-            if (error) throw error;
-            select.innerHTML = data.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
-        } catch (err) { document.getElementById('error-display').innerText = "Erreur : " + err.message; }
+        const nom = document.getElementById('nomProduit').value;
+        const prix = document.getElementById('prixProduit').value;
+        const image = document.getElementById('urlImage').value;
+        const categorie_id = document.getElementById('selectCategorie').value;
+
+        const { data, error } = await _supabase
+            .from('produits')
+            .insert([
+                { 
+                    nom: nom, 
+                    prix: parseInt(prix), 
+                    image: image, 
+                    categorie_id: parseInt(categorie_id) 
+                }
+            ]);
+
+        if (error) {
+            alert("Erreur lors de l'ajout : " + error.message);
+        } else {
+            alert("Produit ajouté avec succès !");
+            // Optionnel : vider le formulaire
+            document.getElementById('formAdmin').reset();
+        }
     }
 
-    async function ajouterProduit() {
-        const nom = document.getElementById('nom').value.trim();
-        const prix = document.getElementById('prix').value;
-        const catId = document.getElementById('categorieSelect').value;
-        const file = document.getElementById('imageFile').files[0];
-        if (!nom || !prix || !file || !catId) return alert("Remplissez tous les champs !");
-
-        const loader = document.getElementById('loader');
-        loader.style.display = 'block';
-
-        try {
-            const fileName = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
-            const { error: upErr } = await _supabase.storage.from('images-produits').upload(fileName, file);
-            if (upErr) throw upErr;
-
-            const { data: urlData } = _supabase.storage.from('images-produits').getPublicUrl(fileName);
-            const { error: dbErr } = await _supabase.from('produits').insert([{
-                nom: nom, prix: parseInt(prix), categorie_id: parseInt(catId), image: urlData.publicUrl
-            }]);
-            if (dbErr) throw dbErr;
-            alert("Produit ajouté !"); location.reload();
-        } catch (err) { alert("Erreur : " + err.message); }
-        finally { loader.style.display = 'none'; }
-    }
-
-    async function chargerProduits() {
-        const liste = document.getElementById('listeContenu');
-        try {
-            const { data, error } = await _supabase.from('produits').select('*').order('id', { ascending: false });
-            if (error) throw error;
-            liste.innerHTML = data.map(p => `
-                <div class="product-item">
-                    <span><strong>${p.nom}</strong> - ${p.prix} DA</span>
-                    <button class="btn-delete" onclick="supprimerProduit(${p.id})">Supprimer</button>
-                </div>`).join('');
-        } catch (err) { liste.innerHTML = "Erreur de chargement."; }
-    }
-
+    // --- 3. FONCTION POUR SUPPRIMER (Si tu en as besoin) ---
     async function supprimerProduit(id) {
-        if (confirm("Supprimer ce produit ?")) {
-            await _supabase.from('produits').delete().eq('id', id);
-            chargerProduits();
+        const { error } = await _supabase
+            .from('produits')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert("Erreur de suppression : " + error.message);
+        } else {
+            alert("Produit supprimé !");
+            location.reload(); // Recharge pour voir la liste à jour
         }
     }
 </script>
