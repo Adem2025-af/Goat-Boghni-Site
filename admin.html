@@ -2,100 +2,122 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goat Admin - Gestion Menu</title>
+    <title>Admin - Gestion du Menu</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
-        .admin-card { background: #1e1e1e; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 450px; margin-bottom: 20px; border: 1px solid #333; }
-        h2 { text-align: center; color: #3ecf8e; margin-bottom: 15px; }
-        h3 { color: #3ecf8e; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        label { display: block; margin-top: 10px; font-size: 0.85rem; color: #aaa; }
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; margin-top: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-add { background: #3ecf8e; color: #121212; }
-        .btn-delete { background: #ff4d4d; color: white; padding: 5px 10px; font-size: 0.7rem; border-radius: 5px; border:none; cursor: pointer; }
-        .product-list { width: 100%; max-width: 450px; background: #1e1e1e; border-radius: 15px; padding: 20px; border: 1px solid #333; }
-        .product-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 12px 0; }
-        .loading { display: none; text-align: center; color: #3ecf8e; margin-top: 15px; }
-        .error-msg { color: #ff4d4d; font-size: 0.8rem; text-align: center; margin-top: 10px; }
+        body { font-family: sans-serif; background: #121212; color: white; padding: 20px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 500px; margin-bottom: 20px; }
+        input, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+        button { background: #2ecc71; color: white; font-weight: bold; cursor: pointer; }
+        .product-item { background: #2a2a2a; padding: 10px; margin: 5px 0; display: flex; justify-content: space-between; align-items: center; }
+        .btn-delete { background: #e74c3c; width: auto; padding: 5px 10px; }
     </style>
 </head>
 <body>
 
-<div class="admin-card">
-    <h2>Gestion du Menu 🍔</h2>
-    <label>Nom du produit</label>
-    <input type="text" id="nom" placeholder="ex: Tacos Lyon">
-    <label>Prix (DA)</label>
-    <input type="number" id="prix" placeholder="ex: 750">
-    <label>Catégorie</label>
-    <select id="categorieSelect"><option value="">Chargement...</option></select>
-    <label>Photo du plat</label>
-    <input type="file" id="imageFile" accept="image/*">
-    <button id="btnAjouter" class="btn btn-add" onclick="ajouterProduit()">METTRE EN LIGNE</button>
-    <div id="loader" class="loading">⏳ Envoi en cours...</div>
-    <div id="error-display" class="error-msg"></div>
-</div>
+    <h1>Gestion du Menu 🍔</h1>
 
-<div class="product-list">
+    <div class="card">
+        <h3>Ajouter un produit</h3>
+        <input type="text" id="nom" placeholder="Nom du produit (ex: Tacos Lyon)">
+        <input type="number" id="prix" placeholder="Prix (DA)">
+        
+        <select id="categorieSelect">
+            <option value="">Chargement des catégories...</option>
+        </select>
+
+        <label>Photo du plat :</label>
+        <input type="file" id="imageFile" accept="image/*">
+
+        <button onclick="ajouterProduit()" id="btnSubmit">METTRE EN LIGNE</button>
+    </div>
+
     <h3>Liste des produits</h3>
-    <div id="listeContenu">Chargement...</div>
-</div>
+    <div id="listeProduits">Chargement...</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-    // --- 1. CONFIGURATION CONNEXION ---
-    // On utilise tes nouvelles clés qui marchent déjà sur l'index
-    const SUPABASE_URL = 'https://mshnfkduobuouqxtuhaa.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_WIDRhfioHCEGTUOoU5Rz2A_t6278M-i';
-    
-    // Initialisation du client Supabase
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = 'https://mshnfkduobuouqxtuhaa.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_WIDRhfioHCEGTUOoU5Rz2A_t6278M-i';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --- 2. FONCTION POUR AJOUTER UN PRODUIT ---
-    async function ajouterProduit(event) {
-        event.preventDefault(); // Empêche la page de se recharger
-
-        const nom = document.getElementById('nomProduit').value;
-        const prix = document.getElementById('prixProduit').value;
-        const image = document.getElementById('urlImage').value;
-        const categorie_id = document.getElementById('selectCategorie').value;
-
-        const { data, error } = await _supabase
-            .from('produits')
-            .insert([
-                { 
-                    nom: nom, 
-                    prix: parseInt(prix), 
-                    image: image, 
-                    categorie_id: parseInt(categorie_id) 
-                }
-            ]);
-
-        if (error) {
-            alert("Erreur lors de l'ajout : " + error.message);
-        } else {
-            alert("Produit ajouté avec succès !");
-            // Optionnel : vider le formulaire
-            document.getElementById('formAdmin').reset();
+        // --- 1. CHARGER LES CATÉGORIES ---
+        async function chargerCategories() {
+            const { data, error } = await _supabase.from('categorie').select('*');
+            const select = document.getElementById('categorieSelect');
+            if (data) {
+                select.innerHTML = data.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+            }
         }
-    }
 
-    // --- 3. FONCTION POUR SUPPRIMER (Si tu en as besoin) ---
-    async function supprimerProduit(id) {
-        const { error } = await _supabase
-            .from('produits')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            alert("Erreur de suppression : " + error.message);
-        } else {
-            alert("Produit supprimé !");
-            location.reload(); // Recharge pour voir la liste à jour
+        // --- 2. CHARGER LES PRODUITS ---
+        async function chargerProduits() {
+            const { data } = await _supabase.from('produits').select('*, categorie(nom)');
+            const liste = document.getElementById('listeProduits');
+            if (data) {
+                liste.innerHTML = data.map(p => `
+                    <div class="product-item">
+                        <span>${p.nom} (${p.prix} DA) - <i>${p.categorie?.nom}</i></span>
+                        <button class="btn-delete" onclick="supprimerProduit(${p.id})">Supprimer</button>
+                    </div>
+                `).join('');
+            }
         }
-    }
-</script>
+
+        // --- 3. AJOUTER UN PRODUIT + IMAGE ---
+        async function ajouterProduit() {
+            const btn = document.getElementById('btnSubmit');
+            const file = document.getElementById('imageFile').files[0];
+            const nom = document.getElementById('nom').value;
+            const prix = document.getElementById('prix').value;
+            const catId = document.getElementById('categorieSelect').value;
+
+            if (!file || !nom || !prix) return alert("Remplis tout !");
+            
+            btn.disabled = true;
+            btn.innerText = "Envoi en cours...";
+
+            try {
+                // A. Upload de l'image
+                const fileName = `${Date.now()}_${file.name}`;
+                const { data: uploadData, error: uploadError } = await _supabase.storage
+                    .from('images-produits')
+                    .upload(fileName, file);
+
+                if (uploadError) throw uploadError;
+
+                // B. Récupérer l'URL publique
+                const { data: urlData } = _supabase.storage.from('images-produits').getPublicUrl(fileName);
+                const imageUrl = urlData.publicUrl;
+
+                // C. Insérer dans la table produits
+                const { error: insertError } = await _supabase.from('produits').insert([
+                    { nom, prix: parseInt(prix), image: imageUrl, categorie_id: parseInt(catId) }
+                ]);
+
+                if (insertError) throw insertError;
+
+                alert("Produit ajouté !");
+                location.reload();
+
+            } catch (err) {
+                alert("Erreur : " + err.message);
+                btn.disabled = false;
+                btn.innerText = "METTRE EN LIGNE";
+            }
+        }
+
+        // --- 4. SUPPRIMER ---
+        async function supprimerProduit(id) {
+            if (confirm("Supprimer ce produit ?")) {
+                await _supabase.from('produits').delete().eq('id', id);
+                chargerProduits();
+            }
+        }
+
+        // Lancement au démarrage
+        chargerCategories();
+        chargerProduits();
+    </script>
 </body>
 </html>
