@@ -6,19 +6,23 @@
     <title>Goat Admin - Gestion Menu</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .admin-card { background: #1e1e1e; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 450px; margin-bottom: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
+        .admin-card { background: #1e1e1e; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 450px; margin-bottom: 20px; border: 1px solid #333; }
         h2 { text-align: center; color: #3ecf8e; margin-bottom: 15px; }
+        h3 { color: #3ecf8e; border-bottom: 1px solid #333; padding-bottom: 10px; }
         label { display: block; margin-top: 10px; font-size: 0.85rem; color: #aaa; }
-        input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
         .btn { width: 100%; padding: 12px; margin-top: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-add { background: #3ecf8e; color: #121212; }
+        .btn-add:hover { background: #2fb37a; }
         .btn-cat { background: #555; color: white; padding: 8px; font-size: 0.8rem; }
         .btn-delete { background: #ff4d4d; color: white; padding: 5px 10px; font-size: 0.7rem; border-radius: 5px; border:none; cursor: pointer; }
         
-        .product-list { width: 100%; max-width: 450px; background: #1e1e1e; border-radius: 15px; padding: 20px; }
-        .product-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 10px 0; }
-        .loading { display: none; text-align: center; color: #3ecf8e; margin-top: 10px; }
+        .product-list { width: 100%; max-width: 450px; background: #1e1e1e; border-radius: 15px; padding: 20px; border: 1px solid #333; }
+        .product-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 12px 0; }
+        .product-item:last-child { border: none; }
+        .loading { display: none; text-align: center; color: #3ecf8e; margin-top: 15px; font-weight: bold; }
+        .error-msg { color: #ff4d4d; font-size: 0.8rem; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -30,7 +34,7 @@
         <label>Nouvelle Catégorie</label>
         <div style="display: flex; gap: 5px;">
             <input type="text" id="newCatName" placeholder="ex: Desserts">
-            <button class="btn btn-cat" onclick="ajouterCategorie()" style="width: auto;">Ajouter</button>
+            <button class="btn btn-cat" onclick="ajouterCategorie()" style="width: auto; margin-top: 5px;">Ajouter</button>
         </div>
     </div>
 
@@ -42,19 +46,20 @@
 
     <label>Catégorie</label>
     <select id="categorieSelect">
-        <option value="">Chargement des catégories...</option>
+        <option value="">Chargement...</option>
     </select>
 
     <label>Photo du plat</label>
     <input type="file" id="imageFile" accept="image/*">
 
     <button id="btnAjouter" class="btn btn-add" onclick="ajouterProduit()">METTRE EN LIGNE</button>
-    <div id="loader" class="loading">Action en cours...</div>
+    <div id="loader" class="loading">⏳ Traitement en cours...</div>
+    <div id="error-display" class="error-msg"></div>
 </div>
 
 <div class="product-list">
-    <h3>Liste des produits (Supprimer)</h3>
-    <div id="listeContenu">Chargement des produits...</div>
+    <h3>Liste des produits</h3>
+    <div id="listeContenu">Initialisation...</div>
 </div>
 
 <script>
@@ -62,56 +67,71 @@
     const SUPABASE_KEY = 'sb_publishable_Gz5KyJA27t70tlBJ9TWpww_QFIL--qR'; 
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    window.onload = () => {
+    // Lancement au démarrage
+    document.addEventListener('DOMContentLoaded', () => {
         chargerCategories();
         chargerProduits();
-    };
+    });
 
     async function chargerCategories() {
         try {
-            const { data, error } = await _supabase.from('categorie').select('*');
+            const { data, error } = await _supabase.from('categorie').select('*').order('nom');
             const select = document.getElementById('categorieSelect');
             if (error) throw error;
+            
             if (data && data.length > 0) {
                 select.innerHTML = data.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
             } else {
-                select.innerHTML = '<option value="">Aucune catégorie trouvée</option>';
+                select.innerHTML = '<option value="">Créez une catégorie d\'abord</option>';
             }
         } catch (err) {
-            console.error("Erreur catégories:", err);
+            document.getElementById('error-display').innerText = "Erreur catégories : " + err.message;
         }
     }
 
     async function ajouterCategorie() {
-        const nom = document.getElementById('newCatName').value;
-        if (!nom) return;
+        const nom = document.getElementById('newCatName').value.trim();
+        if (!nom) return alert("Indiquez un nom de catégorie");
+        
         const { error } = await _supabase.from('categorie').insert([{ nom: nom }]);
         if (error) alert("Erreur : " + error.message);
         else {
-            alert("Catégorie ajoutée !");
             document.getElementById('newCatName').value = "";
             chargerCategories();
         }
     }
 
     async function ajouterProduit() {
-        const nom = document.getElementById('nom').value;
+        const nom = document.getElementById('nom').value.trim();
         const prix = document.getElementById('prix').value;
         const catId = document.getElementById('categorieSelect').value;
         const file = document.getElementById('imageFile').files[0];
 
-        if (!nom || !prix || !file || !catId) { alert("Remplis tout le formulaire !"); return; }
+        if (!nom || !prix || !file || !catId) { 
+            alert("Veuillez remplir tous les champs et choisir une image !"); 
+            return; 
+        }
 
-        document.getElementById('loader').style.display = 'block';
+        const loader = document.getElementById('loader');
+        const btn = document.getElementById('btnAjouter');
+        
+        loader.style.display = 'block';
+        btn.disabled = true;
+        btn.style.opacity = "0.5";
 
         try {
-            const fileName = Date.now() + "_" + file.name;
-            const { data: upData, error: upErr } = await _supabase.storage.from('images-produits').upload(fileName, file);
+            // 1. Upload de l'image
+            const fileName = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+            const { data: upData, error: upErr } = await _supabase.storage
+                .from('images-produits')
+                .upload(fileName, file);
             
             if (upErr) throw upErr;
 
+            // 2. Récupération URL publique
             const { data: urlData } = _supabase.storage.from('images-produits').getPublicUrl(fileName);
             
+            // 3. Insertion en base de données
             const { error: dbErr } = await _supabase.from('produits').insert([{
                 nom: nom, 
                 prix: parseInt(prix), 
@@ -121,35 +141,41 @@
 
             if (dbErr) throw dbErr;
 
-            alert("Produit ajouté !");
+            alert("Produit ajouté avec succès !");
             location.reload();
         } catch (err) {
-            alert("Erreur: " + err.message);
+            alert("Erreur détaillée : " + err.message);
+            console.error(err);
         } finally {
-            document.getElementById('loader').style.display = 'none';
+            loader.style.display = 'none';
+            btn.disabled = false;
+            btn.style.opacity = "1";
         }
     }
 
     async function chargerProduits() {
+        const liste = document.getElementById('listeContenu');
         try {
             const { data, error } = await _supabase.from('produits').select('*').order('id', { ascending: false });
-            const liste = document.getElementById('listeContenu');
             
             if (error) throw error;
             
             if (!data || data.length === 0) {
-                liste.innerHTML = "Aucun produit dans le menu.";
+                liste.innerHTML = "<p style='color: #666; text-align: center;'>Aucun produit enregistré.</p>";
                 return;
             }
 
             liste.innerHTML = data.map(p => `
                 <div class="product-item">
-                    <span>${p.nom} - ${p.prix} DA</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${p.image}" style="width: 40px; hieght: 40px; object-fit: cover; border-radius: 5px;" onerror="this.style.display='none'">
+                        <span><strong>${p.nom}</strong><br><small style="color: #3ecf8e">${p.prix} DA</small></span>
+                    </div>
                     <button class="btn-delete" onclick="supprimerProduit(${p.id})">Supprimer</button>
                 </div>
             `).join('');
         } catch (err) {
-            document.getElementById('listeContenu').innerHTML = "Erreur de chargement.";
+            liste.innerHTML = "<p class='error-msg'>Impossible de charger les produits.</p>";
             console.error(err);
         }
     }
