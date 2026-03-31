@@ -82,12 +82,13 @@
     <section id="menu-section" class="section-hidden py-32 px-6">
         <div class="max-w-7xl mx-auto">
             <div class="flex flex-wrap justify-center gap-4 mb-20">
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenuByName('burger')">Burgers</button>
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenuByName('pizza')">Pizzas</button>
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenuByName('tacos')">Tacos & Snacks</button>
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenuByName('boisson')">Boissons</button>
-                <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenuByName('plats')">plats</button>
-                
+               <div class="flex flex-wrap justify-center gap-4 mb-20">
+    <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu(2)">Burgers</button>
+    <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu(3)">Pizzas</button>
+    <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu(5)">Tacos & Snacks</button>
+    <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu(4)">Boissons</button>
+    <button class="category-btn btn-harmony px-8 py-3 rounded-full glass-premium text-sm" onclick="filterMenu(1)">Plats</button>
+</div>
             </div>
             <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"></div>
         </div>
