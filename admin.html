@@ -3,25 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goat Admin - Ajouter un plat</title>
+    <title>Goat Admin - Gestion Menu</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .admin-card { background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 400px; }
-        h2 { text-align: center; color: #3ecf8e; margin-bottom: 20px; }
-        label { display: block; margin-top: 15px; font-size: 0.9rem; color: #aaa; }
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; margin-top: 25px; border-radius: 8px; border: none; background: #3ecf8e; color: #121212; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #34b27b; transform: translateY(-2px); }
-        .loading { display: none; text-align: center; margin-top: 10px; color: #3ecf8e; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .admin-card { background: #1e1e1e; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 450px; margin-bottom: 20px; }
+        h2 { text-align: center; color: #3ecf8e; margin-bottom: 15px; }
+        label { display: block; margin-top: 10px; font-size: 0.85rem; color: #aaa; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; margin-top: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-add { background: #3ecf8e; color: #121212; }
+        .btn-cat { background: #555; color: white; padding: 8px; font-size: 0.8rem; }
+        .btn-delete { background: #ff4d4d; color: white; padding: 5px 10px; font-size: 0.7rem; border-radius: 5px; border:none; cursor: pointer; }
+        
+        .product-list { width: 100%; max-width: 450px; background: #1e1e1e; border-radius: 15px; padding: 20px; }
+        .product-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 10px 0; }
+        .loading { display: none; text-align: center; color: #3ecf8e; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="admin-card">
-    <h2>Ajouter au Menu 🍔</h2>
+    <h2>Gestion du Menu 🍔</h2>
     
+    <div style="border-bottom: 1px dashed #444; padding-bottom: 15px; margin-bottom: 15px;">
+        <label>Nouvelle Catégorie</label>
+        <div style="display: flex; gap: 5px;">
+            <input type="text" id="newCatName" placeholder="ex: Desserts">
+            <button class="btn btn-cat" onclick="ajouterCategorie()" style="width: auto;">Ajouter</button>
+        </div>
+    </div>
+
     <label>Nom du produit</label>
     <input type="text" id="nom" placeholder="ex: Tacos Lyon">
 
@@ -29,85 +41,126 @@
     <input type="number" id="prix" placeholder="ex: 750">
 
     <label>Catégorie</label>
-    <select id="categorie">
-        <option value="burgers">Burgers</option>
-        <option value="tacos">Tacos</option>
-        <option value="pizzas">Pizzas</option>
-        <option value="boissons">Boissons</option>
+    <select id="categorieSelect">
+        <option value="">Chargement des catégories...</option>
     </select>
 
     <label>Photo du plat</label>
     <input type="file" id="imageFile" accept="image/*">
 
-    <button id="btnAjouter" onclick="ajouterProduit()">METTRE EN LIGNE</button>
-    <div id="loader" class="loading">Envoi en cours... patientez...</div>
+    <button id="btnAjouter" class="btn btn-add" onclick="ajouterProduit()">METTRE EN LIGNE</button>
+    <div id="loader" class="loading">Action en cours...</div>
+</div>
+
+<div class="product-list">
+    <h3>Liste des produits (Supprimer)</h3>
+    <div id="listeContenu">Chargement des produits...</div>
 </div>
 
 <script>
-    // --- CONFIGURATION SUPABASE ---
     const SUPABASE_URL = 'https://zsgssdhngvlfsrybjlbq.supabase.co';
-    // Clé anon publique remplacée ici :
-    const SUPABASE_KEY = 'sb_publishable_UJ_pf9DMTSqlrUVjUECIFA_6y0wdgtN'; 
-    
+    const SUPABASE_KEY = 'sb_publishable_Gz5KyJA27t70tlBJ9TWpww_QFIL--qR'; 
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    window.onload = () => {
+        chargerCategories();
+        chargerProduits();
+    };
+
+    async function chargerCategories() {
+        try {
+            const { data, error } = await _supabase.from('categorie').select('*');
+            const select = document.getElementById('categorieSelect');
+            if (error) throw error;
+            if (data && data.length > 0) {
+                select.innerHTML = data.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+            } else {
+                select.innerHTML = '<option value="">Aucune catégorie trouvée</option>';
+            }
+        } catch (err) {
+            console.error("Erreur catégories:", err);
+        }
+    }
+
+    async function ajouterCategorie() {
+        const nom = document.getElementById('newCatName').value;
+        if (!nom) return;
+        const { error } = await _supabase.from('categorie').insert([{ nom: nom }]);
+        if (error) alert("Erreur : " + error.message);
+        else {
+            alert("Catégorie ajoutée !");
+            document.getElementById('newCatName').value = "";
+            chargerCategories();
+        }
+    }
 
     async function ajouterProduit() {
         const nom = document.getElementById('nom').value;
         const prix = document.getElementById('prix').value;
-        const categorie = document.getElementById('categorie').value;
+        const catId = document.getElementById('categorieSelect').value;
         const file = document.getElementById('imageFile').files[0];
-        const btn = document.getElementById('btnAjouter');
-        const loader = document.getElementById('loader');
 
-        if (!nom || !prix || !file) {
-            alert("Remplis tous les champs et choisis une photo !");
-            return;
-        }
+        if (!nom || !prix || !file || !catId) { alert("Remplis tout le formulaire !"); return; }
 
-        // Afficher le chargement
-        btn.style.display = 'none';
-        loader.style.display = 'block';
+        document.getElementById('loader').style.display = 'block';
 
         try {
-            // 1. Envoyer l'image au Storage (Bucket: images-produits)
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`; 
+            const fileName = Date.now() + "_" + file.name;
+            const { data: upData, error: upErr } = await _supabase.storage.from('images-produits').upload(fileName, file);
             
-            const { data: uploadData, error: uploadError } = await _supabase.storage
-                .from('images-produits')
-                .upload(fileName, file);
+            if (upErr) throw upErr;
 
-            if (uploadError) throw uploadError;
-
-            // 2. Récupérer l'URL de l'image
-            const { data: publicUrlData } = _supabase.storage
-                .from('images-produits')
-                .getPublicUrl(fileName);
+            const { data: urlData } = _supabase.storage.from('images-produits').getPublicUrl(fileName);
             
-            const finalImageUrl = publicUrlData.publicUrl;
+            const { error: dbErr } = await _supabase.from('produits').insert([{
+                nom: nom, 
+                prix: parseInt(prix), 
+                categorie_id: parseInt(catId), 
+                image: urlData.publicUrl
+            }]);
 
-            // 3. Insérer dans la table "produits"
-            const { error: dbError } = await _supabase
-                .from('produits')
-                .insert([{ 
-                    nom: nom, 
-                    prix: parseInt(prix), 
-                    categorie: categorie, 
-                    image: finalImageUrl 
-                }]);
+            if (dbErr) throw dbErr;
 
-            if (dbError) throw dbError;
-
-            alert("Succès ! Le plat " + nom + " est ajouté au menu.");
-            location.reload(); 
-
+            alert("Produit ajouté !");
+            location.reload();
         } catch (err) {
-            alert("Erreur : " + err.message);
-            btn.style.display = 'block';
-            loader.style.display = 'none';
+            alert("Erreur: " + err.message);
+        } finally {
+            document.getElementById('loader').style.display = 'none';
+        }
+    }
+
+    async function chargerProduits() {
+        try {
+            const { data, error } = await _supabase.from('produits').select('*').order('id', { ascending: false });
+            const liste = document.getElementById('listeContenu');
+            
+            if (error) throw error;
+            
+            if (!data || data.length === 0) {
+                liste.innerHTML = "Aucun produit dans le menu.";
+                return;
+            }
+
+            liste.innerHTML = data.map(p => `
+                <div class="product-item">
+                    <span>${p.nom} - ${p.prix} DA</span>
+                    <button class="btn-delete" onclick="supprimerProduit(${p.id})">Supprimer</button>
+                </div>
+            `).join('');
+        } catch (err) {
+            document.getElementById('listeContenu').innerHTML = "Erreur de chargement.";
+            console.error(err);
+        }
+    }
+
+    async function supprimerProduit(id) {
+        if (confirm("Supprimer ce produit définitivement ?")) {
+            const { error } = await _supabase.from('produits').delete().eq('id', id);
+            if (error) alert(error.message);
+            else chargerProduits();
         }
     }
 </script>
-
 </body>
 </html>
