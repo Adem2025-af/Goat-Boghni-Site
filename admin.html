@@ -14,13 +14,10 @@
         input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
         .btn { width: 100%; padding: 12px; margin-top: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-add { background: #3ecf8e; color: #121212; }
-        .btn-add:hover { background: #2fb37a; }
-        .btn-cat { background: #555; color: white; padding: 8px; font-size: 0.8rem; }
         .btn-delete { background: #ff4d4d; color: white; padding: 5px 10px; font-size: 0.7rem; border-radius: 5px; border:none; cursor: pointer; }
         .product-list { width: 100%; max-width: 450px; background: #1e1e1e; border-radius: 15px; padding: 20px; border: 1px solid #333; }
         .product-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 12px 0; }
-        .product-item:last-child { border: none; }
-        .loading { display: none; text-align: center; color: #3ecf8e; margin-top: 15px; font-weight: bold; }
+        .loading { display: none; text-align: center; color: #3ecf8e; margin-top: 15px; }
         .error-msg { color: #ff4d4d; font-size: 0.8rem; text-align: center; margin-top: 10px; }
     </style>
 </head>
@@ -28,13 +25,6 @@
 
 <div class="admin-card">
     <h2>Gestion du Menu 🍔</h2>
-    <div style="border-bottom: 1px dashed #444; padding-bottom: 15px; margin-bottom: 15px;">
-        <label>Nouvelle Catégorie</label>
-        <div style="display: flex; gap: 5px;">
-            <input type="text" id="newCatName" placeholder="ex: Desserts">
-            <button class="btn btn-cat" onclick="ajouterCategorie()" style="width: auto; margin-top: 5px;">Ajouter</button>
-        </div>
-    </div>
     <label>Nom du produit</label>
     <input type="text" id="nom" placeholder="ex: Tacos Lyon">
     <label>Prix (DA)</label>
@@ -44,13 +34,13 @@
     <label>Photo du plat</label>
     <input type="file" id="imageFile" accept="image/*">
     <button id="btnAjouter" class="btn btn-add" onclick="ajouterProduit()">METTRE EN LIGNE</button>
-    <div id="loader" class="loading">⏳ Traitement en cours...</div>
+    <div id="loader" class="loading">⏳ Envoi en cours...</div>
     <div id="error-display" class="error-msg"></div>
 </div>
 
 <div class="product-list">
     <h3>Liste des produits</h3>
-    <div id="listeContenu">Initialisation...</div>
+    <div id="listeContenu">Chargement...</div>
 </div>
 
 <script>
@@ -65,28 +55,11 @@
 
     async function chargerCategories() {
         try {
-            const { data, error } = await _supabase.from('categorie').select('*').order('nom');
+            const { data, error } = await _supabase.from('categorie').select('*').order('id');
             const select = document.getElementById('categorieSelect');
             if (error) throw error;
-            if (data && data.length > 0) {
-                select.innerHTML = data.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
-            } else {
-                select.innerHTML = '<option value="">Créez une catégorie d\'abord</option>';
-            }
-        } catch (err) {
-            document.getElementById('error-display').innerText = "Erreur catégories : " + err.message;
-        }
-    }
-
-    async function ajouterCategorie() {
-        const nom = document.getElementById('newCatName').value.trim();
-        if (!nom) return alert("Indiquez un nom de catégorie");
-        const { error } = await _supabase.from('categorie').insert([{ nom: nom }]);
-        if (error) alert("Erreur : " + error.message);
-        else {
-            document.getElementById('newCatName').value = "";
-            chargerCategories();
-        }
+            select.innerHTML = data.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+        } catch (err) { document.getElementById('error-display').innerText = "Erreur : " + err.message; }
     }
 
     async function ajouterProduit() {
@@ -94,14 +67,16 @@
         const prix = document.getElementById('prix').value;
         const catId = document.getElementById('categorieSelect').value;
         const file = document.getElementById('imageFile').files[0];
-        if (!nom || !prix || !file || !catId) return alert("Remplissez tout !");
+        if (!nom || !prix || !file || !catId) return alert("Remplissez tous les champs !");
+
         const loader = document.getElementById('loader');
-        const btn = document.getElementById('btnAjouter');
-        loader.style.display = 'block'; btn.disabled = true;
+        loader.style.display = 'block';
+
         try {
             const fileName = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
             const { error: upErr } = await _supabase.storage.from('images-produits').upload(fileName, file);
             if (upErr) throw upErr;
+
             const { data: urlData } = _supabase.storage.from('images-produits').getPublicUrl(fileName);
             const { error: dbErr } = await _supabase.from('produits').insert([{
                 nom: nom, prix: parseInt(prix), categorie_id: parseInt(catId), image: urlData.publicUrl
@@ -109,7 +84,7 @@
             if (dbErr) throw dbErr;
             alert("Produit ajouté !"); location.reload();
         } catch (err) { alert("Erreur : " + err.message); }
-        finally { loader.style.display = 'none'; btn.disabled = false; }
+        finally { loader.style.display = 'none'; }
     }
 
     async function chargerProduits() {
@@ -119,19 +94,16 @@
             if (error) throw error;
             liste.innerHTML = data.map(p => `
                 <div class="product-item">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${p.image}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px;">
-                        <span><strong>${p.nom}</strong><br><small style="color: #3ecf8e">${p.prix} DA</small></span>
-                    </div>
+                    <span><strong>${p.nom}</strong> - ${p.prix} DA</span>
                     <button class="btn-delete" onclick="supprimerProduit(${p.id})">Supprimer</button>
                 </div>`).join('');
         } catch (err) { liste.innerHTML = "Erreur de chargement."; }
     }
 
     async function supprimerProduit(id) {
-        if (confirm("Supprimer ?")) {
-            const { error } = await _supabase.from('produits').delete().eq('id', id);
-            if (error) alert(error.message); else chargerProduits();
+        if (confirm("Supprimer ce produit ?")) {
+            await _supabase.from('produits').delete().eq('id', id);
+            chargerProduits();
         }
     }
 </script>
